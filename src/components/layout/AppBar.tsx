@@ -4,10 +4,12 @@ import Link from "next/link";
 import { Home } from "lucide-react";
 
 const apps = [
-  { href: "http://localhost:8888", label: "Hub",         icon: "🏠", active: false, external: true },
-  { href: "http://localhost:3000", label: "Foody",       icon: "🍽️", active: true,  external: false },
-  { href: "http://localhost:3001", label: "Thoughts",    icon: "💭", active: false, external: true },
-  { href: "http://localhost:8081", label: "FamilyVault", icon: "🔐", active: false, external: true },
+  { href: "http://localhost:8888",              label: "Hub",         icon: "🏠", active: false, external: true },
+  { href: "http://localhost:3000",              label: "Foody",       icon: "🍽️", active: true,  external: false },
+  { href: "http://localhost:3001",              label: "Thoughts",    icon: "💭", active: false, external: true },
+  { href: "https://familyvault-ffea8.web.app/", label: "FamilyVault", icon: "🔐", active: false, external: true },
+  { href: "http://localhost:3002",              label: "AI Power",    icon: "🤖", active: false, external: true },
+  { href: "http://localhost:8001",              label: "Job Tracker", icon: "💼", active: false, external: true },
 ];
 
 export function AppBar() {
