@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model IngredientCategory {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  color       String       @default("#6B7280")
+  ingredients Ingredient[]
+  createdAt   DateTime     @default(now())
+}
+
+model Ingredient {
+  id              Int                  @id @default(autoincrement())
+  name            String               @unique
+  categoryId      Int
+  category        IngredientCategory   @relation(fields: [categoryId], references: [id])
+  unit            String
+  // Pricing: user enters the shop price for a known pack size
+  // e.g. packageCost=0.50, packageSize=500 (for 500g at £0.50)
+  // costPerUnit is derived: packageCost / packageSize — kept for recipe calc compat
+  packageCost     Float                @default(0)  // £ price per package
+  packageSize     Float                @default(1)  // how many units per package
+  costPerUnit     Float                @default(0)  // derived: packageCost / packageSize
+  currentQuantity Float                @default(0)
+  minQuantity     Float                @default(0)
+  notes           String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  recipeIngredients RecipeIngredient[]
+  inventoryLogs     InventoryLog[]
+  shoppingListItems ShoppingListItem[]
+}
+
+model InventoryLog {
+  id           Int        @id @default(autoincrement())
+  ingredientId Int
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  changeAmount Float
+  reason       String
+  mealPlanId   Int?
+  mealPlan     MealPlan?  @relation(fields: [mealPlanId], references: [id])
+  createdAt    DateTime   @default(now())
+}
+
+model Recipe {
+  id           Int                @id @default(autoincrement())
+  name         String
+  description  String?
+  instructions String
+  prepTime     Int
+  cookTime     Int
+  servings     Int                @default(2)
+  imageUrl     String?
+  source       String?
+  dietaryTags  String             @default("")
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  ingredients     RecipeIngredient[]
+  mealPlanEntries MealPlanEntry[]
+}
+
+model RecipeIngredient {
+  id           Int        @id @default(autoincrement())
+  recipeId     Int
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredientId Int
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  quantity     Float
+  unit         String
+  notes        String?
+  optional     Boolean    @default(false)
+
+  @@unique([recipeId, ingredientId])
+}
+
+model Person {
+  id           Int      @id @default(autoincrement())
+  name         String
+  avatarColor  String   @default("#3B82F6")
+  relationship String   @default("family")
+  likes        String   @default("[]")
+  dislikes     String   @default("[]")
+  allergies    String   @default("[]")
+  dietary      String   @default("[]")
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  mealPlanPeople MealPlanPerson[]
+}
+
+model MealPlan {
+  id           Int      @id @default(autoincrement())
+  date         DateTime
+  healthRating Int      @default(3)
+  moodText     String?
+  aiSuggestion String?
+  aiModel      String?
+  aiTokensUsed Int?
+  status       String   @default("draft")
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  people        MealPlanPerson[]
+  entries       MealPlanEntry[]
+  inventoryLogs InventoryLog[]
+  budgetEntry   BudgetEntry?
+}
+
+model MealPlanPerson {
+  id         Int      @id @default(autoincrement())
+  mealPlanId Int
+  mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  personId   Int
+  person     Person   @relation(fields: [personId], references: [id])
+
+  @@unique([mealPlanId, personId])
+}
+
+model MealPlanEntry {
+  id                   Int      @id @default(autoincrement())
+  mealPlanId           Int
+  mealPlan             MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  recipeId             Int?
+  recipe               Recipe?  @relation(fields: [recipeId], references: [id])
+  suggestedName        String?
+  suggestedDescription String?
+  role                 String   @default("main")
+  forPeopleIds         String   @default("[]")
+  accepted             Boolean  @default(true)
+  sortOrder            Int      @default(0)
+  createdAt            DateTime @default(now())
+}
+
+model BudgetConfig {
+  id            Int   @id @default(autoincrement())
+  monthlyBudget Float @default(350)
+  month         Int
+  year          Int
+
+  @@unique([month, year])
+}
+
+model BudgetEntry {
+  id          Int       @id @default(autoincrement())
+  mealPlanId  Int?      @unique
+  mealPlan    MealPlan? @relation(fields: [mealPlanId], references: [id])
+  description String?
+  amount      Float
+  date        DateTime
+  category    String    @default("meal")
+  createdAt   DateTime  @default(now())
+}
+
+// ─── SHOPPING LIST ────────────────────────────────────────────────────────────
+
+model ShoppingList {
+  id        Int                @id @default(autoincrement())
+  name      String             @default("Shopping List")
+  status    String             @default("active") // "active" | "completed"
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  items     ShoppingListItem[]
+}
+
+model ShoppingListItem {
+  id             Int           @id @default(autoincrement())
+  shoppingListId Int
+  shoppingList   ShoppingList  @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+  ingredientId   Int?
+  ingredient     Ingredient?   @relation(fields: [ingredientId], references: [id])
+  name           String
+  quantity       Float         @default(1)
+  unit           String        @default("pack")
+  estimatedCost  Float         @default(0)
+  checked        Boolean       @default(false)
+  source         String        @default("manual") // "manual" | "low_stock" | "meal_plan"
+  notes          String?
+  sortOrder      Int           @default(0)
+  createdAt      DateTime      @default(now())
+}
