@@ -7,20 +7,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatGBP, parseJsonArray } from "@/lib/utils";
 import { Clock, Users, ChefHat, Pencil, ArrowLeft, Check } from "lucide-react";
+import { RecipeLikeButton } from "@/components/recipes/RecipeLikeButton";
 
 export const dynamic = "force-dynamic";
 
 export default async function RecipePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = await params;
-  const recipe = await prisma.recipe.findUnique({
-    where: { id: Number(idStr) },
-    include: {
-      ingredients: {
-        include: { ingredient: { include: { category: true } } },
-        orderBy: { id: "asc" },
+  const [recipe, people] = await Promise.all([
+    prisma.recipe.findUnique({
+      where: { id: Number(idStr) },
+      include: {
+        ingredients: {
+          include: { ingredient: { include: { category: true } } },
+          orderBy: { id: "asc" },
+        },
+        likes: { select: { personId: true } },
       },
-    },
-  });
+    }),
+    prisma.person.findMany({ orderBy: { name: "asc" } }),
+  ]);
 
   if (!recipe) notFound();
 
@@ -68,6 +73,16 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
                   {tag}
                 </Badge>
               ))}
+            </div>
+          )}
+          {people.length > 0 && (
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-sm text-gray-500">Who likes this?</span>
+              <RecipeLikeButton
+                recipeId={recipe.id}
+                people={people}
+                initialLikedByIds={recipe.likes.map((l) => l.personId)}
+              />
             </div>
           )}
         </div>

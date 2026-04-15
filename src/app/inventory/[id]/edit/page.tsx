@@ -343,10 +343,60 @@ export default function EditIngredientPage({ params }: { params: Promise<{ id: s
               showLabel
             />
           </div>
+          {/* Quick-tap buttons when package has multiple items */}
+          {ingredient.packageSize > 1 && (
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500 font-medium">
+                Quick adjust — 1 item = {(1 / ingredient.packageSize).toFixed(4).replace(/\.?0+$/, "")} {ingredient.unit} ({ingredient.packageSize} per pack)
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: `− 1 item`, amount: -(1 / ingredient.packageSize), reason: "Used 1 item" },
+                  { label: `+ 1 item`, amount:  (1 / ingredient.packageSize), reason: "Added 1 item" },
+                  { label: `− 1 pack`, amount: -1,                             reason: "Used 1 pack" },
+                  { label: `+ 1 pack`, amount:  1,                             reason: "Restocked 1 pack" },
+                ].map(({ label, amount, reason }) => (
+                  <Button
+                    key={label}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={adjusting}
+                    className={amount < 0 ? "border-red-200 text-red-600 hover:bg-red-50" : "border-green-200 text-green-600 hover:bg-green-50"}
+                    onClick={async () => {
+                      setAdjusting(true);
+                      try {
+                        const res = await fetch(`/api/inventory/${id}/adjust`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ amount, reason }),
+                        });
+                        if (!res.ok) throw new Error("Failed");
+                        const data = await res.json();
+                        setIngredient((prev) =>
+                          prev ? { ...prev, currentQuantity: data.ingredient.currentQuantity, inventoryLogs: [data.log, ...prev.inventoryLogs].slice(0, 10) } : prev
+                        );
+                        setForm((f) => ({ ...f, currentQuantity: String(data.ingredient.currentQuantity) }));
+                        toast.success(`${label} applied`);
+                      } catch {
+                        toast.error("Failed to adjust stock");
+                      } finally {
+                        setAdjusting(false);
+                      }
+                    }}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+              <Separator />
+            </div>
+          )}
+
           <form onSubmit={handleAdjust} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="adjustAmount">Adjustment amount</Label>
+                <Label htmlFor="adjustAmount">Custom amount</Label>
                 <Input
                   id="adjustAmount"
                   type="number"

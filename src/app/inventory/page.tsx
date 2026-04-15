@@ -1,20 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { IngredientCard } from "@/components/inventory/IngredientCard";
-import { Badge } from "@/components/ui/badge";
+import { InventoryClient } from "@/components/inventory/InventoryClient";
 import { AlertTriangle, ShoppingBasket } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function InventoryPage() {
   const ingredients = await prisma.ingredient.findMany({
+    where: { category: { name: { not: "Hello Fresh" } } },
     include: { category: true },
     orderBy: { name: "asc" },
   });
 
   const lowStock = ingredients.filter((i) => i.currentQuantity <= i.minQuantity);
-  const categories = [...new Set(ingredients.map((i) => i.category.name))].sort();
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -47,33 +46,7 @@ export default async function InventoryPage() {
           icon={<ShoppingBasket className="w-8 h-8 text-gray-400" />}
         />
       ) : (
-        <div className="space-y-8">
-          {categories.map((categoryName) => {
-            const items = ingredients.filter((i) => i.category.name === categoryName);
-            const category = items[0].category;
-            return (
-              <div key={categoryName}>
-                <div className="flex items-center gap-2 mb-3">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: category.color }}
-                  />
-                  <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                    {categoryName}
-                  </h2>
-                  <Badge variant="secondary" className="text-xs">
-                    {items.length}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {items.map((ingredient) => (
-                    <IngredientCard key={ingredient.id} ingredient={ingredient} />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <InventoryClient ingredients={ingredients} />
       )}
     </div>
   );

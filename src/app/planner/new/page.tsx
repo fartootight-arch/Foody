@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { MealSuggestionCard } from "@/components/planner/MealSuggestionCard";
+import { MealRefinementChat } from "@/components/planner/MealRefinementChat";
 import { formatGBP, healthRatingLabel, healthRatingEmoji, parseJsonArray } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Loader2, Users, CalendarDays, Sparkles, Check } from "lucide-react";
 
@@ -80,6 +81,7 @@ export default function NewMealPlanPage() {
     return d.toISOString().split("T")[0];
   });
   const [healthRating, setHealthRating] = useState(3);
+  const [shoppingWillingness, setShoppingWillingness] = useState(1);
   const [moodText, setMoodText] = useState("");
   const [loading, setLoading] = useState(false);
   const [suggestion, setSuggestion] = useState<AISuggestion | null>(null);
@@ -113,6 +115,7 @@ export default function NewMealPlanPage() {
         body: JSON.stringify({
           date,
           healthRating,
+          shoppingWillingness,
           moodText: moodText || null,
           peopleIds: selectedPeopleIds,
           servings: selectedPeopleIds.length || 2,
@@ -266,6 +269,52 @@ export default function NewMealPlanPage() {
       {/* Step 2: Health & Mood */}
       {step === 1 && (
         <div className="space-y-6">
+
+          {/* Shopping willingness */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Are you going shopping?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {(() => {
+                const levels = [
+                  { emoji: "🚫", label: "Not shopping", sub: "Use only what we have — be creative!" },
+                  { emoji: "😐", label: "Rather not shop", sub: "Prefer the cupboards, tiny top-up ok" },
+                  { emoji: "🤔", label: "Could manage it", sub: "A few items if it really helps" },
+                  { emoji: "🛒", label: "Happy to grab a few things", sub: "Mix of pantry + small shop" },
+                  { emoji: "🛍️", label: "Happy to shop", sub: "Suggest whatever is best" },
+                ];
+                const current = levels[shoppingWillingness];
+                return (
+                  <>
+                    <div className="text-center">
+                      <div className="text-5xl mb-2">{current.emoji}</div>
+                      <p className="text-lg font-semibold text-gray-800">{current.label}</p>
+                      <p className="text-sm text-gray-500">{current.sub}</p>
+                    </div>
+                    <div className="px-4">
+                      <Slider
+                        min={0}
+                        max={4}
+                        step={1}
+                        value={[shoppingWillingness]}
+                        onValueChange={(values) => {
+                          const v = Array.isArray(values) ? values[0] : (values as any);
+                          if (typeof v === "number") setShoppingWillingness(v);
+                        }}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-gray-400 mt-2">
+                        <span>Not shopping</span>
+                        <span>Happy to shop</span>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Health Rating</CardTitle>
@@ -374,6 +423,14 @@ export default function NewMealPlanPage() {
                 </Card>
               )}
 
+              {/* Refinement chat — available as soon as suggestion is shown */}
+              {mealPlan && (
+                <MealRefinementChat
+                  mealPlanId={mealPlan.id}
+                  onUpdated={(updated) => setSuggestion(updated)}
+                />
+              )}
+
               <div className="flex justify-end">
                 <p className="text-sm text-gray-500">
                   Total estimated cost:{" "}
@@ -402,6 +459,12 @@ export default function NewMealPlanPage() {
               <div>
                 <p className="text-xs text-gray-500">Health rating</p>
                 <p className="font-medium">{healthRatingEmoji(healthRating)} {healthRatingLabel(healthRating)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Shopping</p>
+                <p className="font-medium">
+                  {["🚫 Not shopping","😐 Rather not","🤔 Could manage","🛒 Few things","🛍️ Happy to shop"][shoppingWillingness]}
+                </p>
               </div>
               {moodText && (
                 <div className="col-span-2">

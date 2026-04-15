@@ -13,11 +13,16 @@ export function formatGBP(amount: number): string {
 }
 
 export function parseJsonArray(value: string): string[] {
+  if (!value) return [];
   try {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return [];
+    // Plain text with numbered steps e.g. "1. Step one\n2. Step two"
+    return value
+      .split(/\n+/)
+      .map((s) => s.replace(/^\d+\.\s*/, "").trim())
+      .filter(Boolean);
   }
 }
 

@@ -3,12 +3,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, PoundSterling } from "lucide-react";
 import { formatGBP } from "@/lib/utils";
+import { RecipeLikeButton } from "./RecipeLikeButton";
 
 interface RecipeIngredient {
   quantity: number;
   ingredient: {
     costPerUnit: number;
   };
+}
+
+interface Person {
+  id: number;
+  name: string;
+  avatarColor: string;
 }
 
 interface Recipe {
@@ -20,13 +27,15 @@ interface Recipe {
   servings: number;
   dietaryTags: string;
   ingredients: RecipeIngredient[];
+  likes: { personId: number }[];
 }
 
 interface RecipeCardProps {
   recipe: Recipe;
+  people: Person[];
 }
 
-export function RecipeCard({ recipe }: RecipeCardProps) {
+export function RecipeCard({ recipe, people }: RecipeCardProps) {
   const tags = recipe.dietaryTags ? recipe.dietaryTags.split(",").filter(Boolean) : [];
   const totalCost = recipe.ingredients.reduce(
     (sum, ri) => sum + ri.quantity * ri.ingredient.costPerUnit,
@@ -34,6 +43,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   );
   const costPerServing = recipe.servings > 0 ? totalCost / recipe.servings : 0;
   const totalTime = recipe.prepTime + recipe.cookTime;
+  const likedByIds = recipe.likes.map((l) => l.personId);
 
   return (
     <Link href={`/recipes/${recipe.id}`}>
@@ -74,6 +84,15 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
               </div>
             )}
           </div>
+
+          {/* Like buttons — one per person */}
+          {people.length > 0 && (
+            <RecipeLikeButton
+              recipeId={recipe.id}
+              people={people}
+              initialLikedByIds={likedByIds}
+            />
+          )}
         </CardContent>
       </Card>
     </Link>

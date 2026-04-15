@@ -14,18 +14,22 @@ export default async function RecipesPage({
   searchParams: Promise<{ tag?: string }>;
 }) {
   const { tag: selectedTag } = await searchParams;
-  const recipes = await prisma.recipe.findMany({
-    include: {
-      ingredients: { include: { ingredient: true } },
-    },
-    orderBy: { name: "asc" },
-  });
+
+  const [recipes, people] = await Promise.all([
+    prisma.recipe.findMany({
+      include: {
+        ingredients: { include: { ingredient: true } },
+        likes: { select: { personId: true } },
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.person.findMany({ orderBy: { name: "asc" } }),
+  ]);
 
   // Collect all unique tags
   const allTags = [
     ...new Set(
-      recipes
-        .flatMap((r) => (r.dietaryTags ? r.dietaryTags.split(",").filter(Boolean) : []))
+      recipes.flatMap((r) => (r.dietaryTags ? r.dietaryTags.split(",").filter(Boolean) : []))
     ),
   ].sort();
 
@@ -81,7 +85,7 @@ export default async function RecipesPage({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filtered.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
+            <RecipeCard key={recipe.id} recipe={recipe} people={people} />
           ))}
         </div>
       )}

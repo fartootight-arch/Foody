@@ -27,6 +27,13 @@ interface Ingredient {
   };
 }
 
+// How many units does 1 "item" represent?
+// e.g. packageSize=4 and unit="pack" → 1 item = 0.25 packs
+// e.g. packageSize=1 → 1 item = 1 unit (no difference)
+function itemStep(packageSize: number): number {
+  return packageSize > 1 ? 1 / packageSize : 1;
+}
+
 interface IngredientCardProps {
   ingredient: Ingredient;
   onUpdate?: () => void;
@@ -89,37 +96,92 @@ export function IngredientCard({ ingredient, onUpdate }: IngredientCardProps) {
           <StockBar current={quantity} min={ingredient.minQuantity} unit={ingredient.unit} />
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">
-            {ingredient.packageSize > 1
-              ? `${formatGBP(ingredient.packageCost)} / ${ingredient.packageSize}${ingredient.unit}`
-              : `${formatGBP(ingredient.packageCost)} / ${ingredient.unit}`}
-          </span>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => adjust(-1)}
-              disabled={loading || quantity <= 0}
-            >
-              <Minus className="w-3 h-3" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => adjust(1)}
-              disabled={loading}
-            >
-              <Plus className="w-3 h-3" />
-            </Button>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">
+              {ingredient.packageSize > 1
+                ? `${formatGBP(ingredient.packageCost)} / ${ingredient.packageSize} ${ingredient.unit}`
+                : `${formatGBP(ingredient.packageCost)} / ${ingredient.unit}`}
+            </span>
             <Link href={`/inventory/${ingredient.id}/edit`}>
               <Button variant="ghost" size="icon" className="h-6 w-6">
                 <Pencil className="w-3 h-3" />
               </Button>
             </Link>
           </div>
+
+          {/* Adjust buttons */}
+          {ingredient.packageSize > 1 ? (
+            <div className="grid grid-cols-2 gap-1">
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-6 w-6 flex-1"
+                  onClick={() => adjust(-itemStep(ingredient.packageSize))}
+                  disabled={loading || quantity <= 0}
+                  title="Remove 1 item"
+                >
+                  <Minus className="w-3 h-3" />
+                </Button>
+                <span className="text-[10px] text-gray-400 self-center">item</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-6 w-6 flex-1"
+                  onClick={() => adjust(itemStep(ingredient.packageSize))}
+                  disabled={loading}
+                  title="Add 1 item"
+                >
+                  <Plus className="w-3 h-3" />
+                </Button>
+              </div>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-6 w-6 flex-1"
+                  onClick={() => adjust(-1)}
+                  disabled={loading || quantity <= 0}
+                  title="Remove 1 pack"
+                >
+                  <Minus className="w-3 h-3" />
+                </Button>
+                <span className="text-[10px] text-gray-400 self-center">pack</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-6 w-6 flex-1"
+                  onClick={() => adjust(1)}
+                  disabled={loading}
+                  title="Add 1 pack"
+                >
+                  <Plus className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-end gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => adjust(-1)}
+                disabled={loading || quantity <= 0}
+              >
+                <Minus className="w-3 h-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => adjust(1)}
+                disabled={loading}
+              >
+                <Plus className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

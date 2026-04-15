@@ -64,6 +64,18 @@ model Recipe {
 
   ingredients     RecipeIngredient[]
   mealPlanEntries MealPlanEntry[]
+  likes           RecipeLike[]
+}
+
+model RecipeLike {
+  id       Int    @id @default(autoincrement())
+  recipeId Int
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  personId Int
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([recipeId, personId])
 }
 
 model RecipeIngredient {
@@ -94,6 +106,7 @@ model Person {
   updatedAt    DateTime @updatedAt
 
   mealPlanPeople MealPlanPerson[]
+  recipeLikes    RecipeLike[]
 }
 
 model MealPlan {
